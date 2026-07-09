@@ -1,0 +1,16 @@
+# fib.tasm -- first Fibonacci numbers via repeated addition.
+#   R0 = a = 0, R1 = b = 1, R2 = count = 10, R3 = 1 (const)
+#   loop: OUT b ; t = a+b ; a = b ; b = t ; count-- ; JNZ loop
+LOAD  R0  0
+LOAD  R1  1
+LOAD  R2  10
+LOAD  R3  1
+LOOP:
+OUT   R1
+ADD   R0  R1        # R0 = a + b  (= next value, stored in R0)
+MOV   R4  R1        # R4 = old b
+MOV   R1  R0        # b  = a + b (new b)
+MOV   R0  R4        # a  = old b
+SUB   R2  R3        # count--
+JNZ   LOOP R2
+HALT

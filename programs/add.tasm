@@ -1,0 +1,6 @@
+# add.tasm -- compute 5 + 7 and print it
+LOAD  R0  5
+LOAD  R1  7
+ADD   R0  R1
+OUT   R0
+HALT
