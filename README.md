@@ -1,5 +1,8 @@
 # ternary-vm
 
+[![CI](https://github.com/kostyk348/ternary-vm/actions/workflows/ci.yml/badge.svg)](https://github.com/kostyk348/ternary-vm/actions/workflows/ci.yml)
+
+
 **A balanced-ternary virtual machine and assembler.**
 
 A *tryte* is 9 trits (each in {-1, 0, +1}), holding values in
@@ -50,6 +53,9 @@ HALT
 ```bash
 python vm/ternary_vm.py programs/fib.tasm
 # output: [1, 1, 2, 3, 5, 8, 13, 21, 34, 55]
+
+[![CI](https://github.com/kostyk348/ternary-vm/actions/workflows/ci.yml/badge.svg)](https://github.com/kostyk348/ternary-vm/actions/workflows/ci.yml)
+
 ```
 
 Programs in `programs/`: `add.tasm` (12), `mul.tasm` (6*8 = 48 via repeated
