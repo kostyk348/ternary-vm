@@ -3,7 +3,7 @@ name: CI
 on: [push, pull_request]
 
 jobs:
-  run-programs:
+  python-tests:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -16,3 +16,38 @@ jobs:
         run: python vm/ternary_vm.py programs/mul.tasm
       - name: fib.tasm (expect 1,1,2,3,5,8,13,21,34,55)
         run: python vm/ternary_vm.py programs/fib.tasm
+      - name: C example bytecode images are current
+        run: python tools/emit_bytecode.py --check
+      - name: unit tests + differential tests (Python VM vs C core)
+        run: python -m unittest discover -s tests -t tests -v
+
+  c-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: compiler
+        run: gcc --version | head -1
+      - name: build and run the C example (strict warnings)
+        run: |
+          gcc -std=c99 -Wall -Wextra -Werror -pedantic -Iinclude -Iexamples/c \
+              examples/c/demo.c -o demo
+          ./demo
+      - name: build and run the C benchmark
+        run: |
+          gcc -std=c99 -O2 -Wall -Wextra -Werror -Iinclude -Iexamples/c \
+              bench/bench_vm.c -o bench_vm
+          ./bench_vm
+
+  mptc-cross-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: fetch MPTC (the sibling project this VM is compared against)
+        run: git clone --depth 1 https://github.com/kostyk348/MPTC ../MPTC
+      - name: speed comparison harness (small counts, checks the wiring)
+        run: >
+          python bench/run_all.py --mptc-dir ../MPTC --runs 2000
+          --prim-iter 200000 --repeat 1

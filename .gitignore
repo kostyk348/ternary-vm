@@ -1,2 +1,9 @@
 __pycache__/
 *.pyc
+
+# build artefacts of the C examples / benchmarks / test harness
+/demo
+/bench_vm
+/tools/c_runner
+*.o
+/build/
