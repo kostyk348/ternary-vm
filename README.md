@@ -1,7 +1,9 @@
 # ternary-vm
 
 [![CI](https://github.com/kostyk348/ternary-vm/actions/workflows/ci.yml/badge.svg)](https://github.com/kostyk348/ternary-vm/actions/workflows/ci.yml)
-
+[![Release](https://img.shields.io/github/v/release/kostyk348/ternary-vm?sort=semver&color=blue)](https://github.com/kostyk348/ternary-vm/releases)
+[![License](https://img.shields.io/badge/license-Apache-2.0-green)](https://github.com/kostyk348/ternary-vm/blob/main/LICENSE)
+[![Last commit](https://img.shields.io/github/last-commit/kostyk348/ternary-vm?branch=main)](https://github.com/kostyk348/ternary-vm/commits/main)
 
 **A balanced-ternary virtual machine and assembler.**
 
@@ -53,6 +55,7 @@ HALT
 ```bash
 python vm/ternary_vm.py programs/fib.tasm
 # output: [1, 1, 2, 3, 5, 8, 13, 21, 34, 55]
+
 ```
 
 Programs in `programs/`: `add.tasm` (12), `mul.tasm` (6*8 = 48 via repeated
