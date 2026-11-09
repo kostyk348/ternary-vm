@@ -7,3 +7,7 @@ __pycache__/
 /tools/c_runner
 *.o
 /build/
+# build artefacts of the research tools added in audit/upgrade
+/ttrace
+/bench_tri_vs_bin
+/property_test
