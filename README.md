@@ -5,20 +5,61 @@
 [![License](https://img.shields.io/badge/license-Apache-2.0-green)](https://github.com/kostyk348/ternary-vm/blob/main/LICENSE)
 [![Last commit](https://img.shields.io/github/last-commit/kostyk348/ternary-vm?branch=main)](https://github.com/kostyk348/ternary-vm/commits/main)
 
-**A balanced-ternary virtual machine and assembler.**
+**English | [Русский](README.ru.md)**
 
-A *tryte* is 9 trits (each in {-1, 0, +1}), holding values in
-`[-9841, +9841]`. This is a clean reference runtime for the *Multi-Phase
-Ternary Computing* paradigm introduced in
-[MPTC](https://github.com/kostyk348/MPTC), realised here as a small
-interpreter plus a two-pass assembler with labels.
+**A balanced-ternary reference VM and research lab.**
 
-## Why ternary?
+This is a *reference virtual machine for balanced-ternary arithmetic
+research* — a place to inspect how the digit set `{-1, 0, +1}` behaves: how
+carry propagates, what a packed encoding costs, where a ternary machine
+would differ from a binary one. It is **not** a competitor to ordinary
+binary VMs, and no claim is made here that ternary arithmetic is faster or
+more energy-efficient than binary. A *tryte* is 9 trits, holding values in
+`[-9841, +9841]`; the machine is realised as a small interpreter, a
+two-pass assembler with labels, a single-file C99 core, a carry/borrow
+tracer and a property-test suite.
+
+The full research write-up (arithmetic property table, tracer walkthrough,
+trit-vs-bit cost comparison) lives in **[docs/lab.md](docs/lab.md)**.
+
+## Quickstart
+
+```bash
+# 1. run a program on the reference Python VM
+python vm/ternary_vm.py programs/fib.tasm
+# output: [1, 1, 2, 3, 5, 8, 13, 21, 34, 55]
+
+# 2. run the whole test suite (Python VM + assembler + C parity + property tests)
+python -m unittest discover -s tests -t tests -v
+# C property suite alone (plain gcc, no Python needed):
+sh tests/run_property_tests.sh
+
+# 3. build the C core and the carry/borrow tracer (gcc, no dependencies)
+gcc -std=c99 -Wall -Wextra -Werror -pedantic -Iinclude -Itools tools/ttrace.c -o ttrace
+./ttrace add 5 7                  # per-trit carry table
+./ttrace sub -5 7                 # per-trit borrow table
+./ttrace add 9841 1               # overflow demonstration (exit 3)
+./ttrace --html add -5 7 > trace.html
+
+# 4. ternary-vs-binary arithmetic cost on this host (wall clock only)
+gcc -std=c99 -O2 -Wall -Wextra -Iinclude -Itools bench/bench_tri_vs_bin.c \
+    -o bench_tri_vs_bin -lm && ./bench_tri_vs_bin
+
+# 5. full speed comparison (Python VM vs C core [+ MPTC])
+python bench/run_all.py
+```
+
+Programs in `programs/`: `add.tasm` (12), `mul.tasm` (6*8 = 48 via repeated
+addition), `fib.tasm` (Fibonacci).
+
+## Why balanced ternary (as a research object)
 
 Balanced ternary is the most efficient integer base for its symbol count
-(Information Theory, 1950): it needs the fewest trits to represent a given
-range, and the symmetric digit set makes negation and sign handling
-trivial. It is the natural fit for MPTC's wave/superposition model.
+(Information Theory, 1950): the fewest trits for a given range, a symmetric
+digit set that makes negation a carry-free trit flip, a *signed* carry that
+binary addition never produces. Those are exactly the properties worth
+studying in a lab — and the ones this repository makes testable
+(`tests/property_test.c`) and visible (`tools/ttrace.c`).
 
 ## Assembler
 
@@ -50,17 +91,6 @@ JNZ   LOOP R2
 HALT
 ```
 
-## Run
-
-```bash
-python vm/ternary_vm.py programs/fib.tasm
-# output: [1, 1, 2, 3, 5, 8, 13, 21, 34, 55]
-
-```
-
-Programs in `programs/`: `add.tasm` (12), `mul.tasm` (6*8 = 48 via repeated
-addition), `fib.tasm` (Fibonacci).
-
 ## Instruction set
 
 | Opcode | Operands      | Semantics |
@@ -79,15 +109,15 @@ addition), `fib.tasm` (Fibonacci).
 | OUT    | R s           | append R[s] to output |
 | NOP    | —             | no-op |
 
-All arithmetic clamps to the 9-trit range (saturation).
+All arithmetic clamps to the 9-trit range (saturation). There is no
+ordered comparison and no division — see the honesty section.
 
 ## C core for MCUs: `include/ternary_vm.h`
 
-The C port is no longer a plan: `include/ternary_vm.h` is a **single-file C99
-header** with no external dependencies, no dynamic allocation and no globals
-(every function is `static inline`), so it can run the same bytecode on an
-FPU-less MCU. The program image is a caller-owned `const tvm_code_t[]` array
-(Flash/PROGMEM friendly) — nothing is copied and nothing is allocated.
+A **single-file C99 header**: no external dependencies, no dynamic
+allocation, no globals (every function is `static inline`), so it runs the
+same bytecode on an FPU-less MCU. The program image is a caller-owned
+`const tvm_code_t[]` array (Flash/PROGMEM friendly).
 
 ```c
 #include "ternary_vm.h"
@@ -110,8 +140,7 @@ int main(void) {
 }
 ```
 
-Build and run the full example (`examples/c/demo.c`) — no dependencies
-beyond `gcc`:
+Build and run the full example (`examples/c/demo.c`):
 
 ```bash
 python tools/emit_bytecode.py        # programs/*.tasm -> examples/c/programs_generated.h
@@ -119,43 +148,21 @@ gcc -std=c99 -Wall -Wextra -Werror -pedantic -Iinclude -Iexamples/c \
     examples/c/demo.c -o demo && ./demo
 ```
 
-### What is implemented
+Implemented: all 13 opcodes, 9-trit saturating arithmetic, the packed-tryte
+codec (bit-identical to the Python reference, floor-division semantics
+included), program load, single step, run with step limit, register/memory/
+OUT read-out, fault reporting instead of exceptions. The Python VM stays
+the reference implementation; `tests/test_c_parity.py` proves the C core
+agrees with it field by field (output stream, registers, PC, step count,
+full 256-cell memory image) on all repository programs plus 200 seeded
+random programs.
 
-| Area | Status |
-|---|---|
-| All 13 opcodes (`HALT LOAD STORE ADD SUB MUL NEG MOV JMP JZ JNZ OUT NOP`) | yes, same numbers as `vm/asm.py` |
-| 9-trit tryte arithmetic with saturation | yes (`tvm_clamp`) |
-| packed-tryte codec (`tvm_encode` / `tvm_decode` / `tvm_trit_at`) | yes, bit-identical to Python (floor-division semantics included) |
-| program load, single step, full run with step limit | yes (`tvm_init`, `tvm_step`, `tvm_run`) |
-| register read-out, memory read-out, OUT stream | yes (`tvm_reg`, `tvm_mem_read`, `tvm_out`, `tvm_out_total`) |
-| memory write with `addr % MEM_SIZE` wrap (as in Python) | yes (`TVM_OP_STORE`) |
-| PC wrap modulo program length (floor modulo, as in Python) | yes (`tvm_wrap`) |
-| fault reporting instead of exceptions | yes (`TVM_ERR_BAD_OPCODE`, `TVM_ERR_BAD_REG`, `TVM_ERR_STEP_LIMIT`) |
+## Known defect of the reference codec (reproduced on purpose)
 
-### What is *not* implemented (honest list)
-
-* **No memory→register load.** The ISA has no such instruction in the Python
-  reference either: memory is write-only today, so the C core mirrors that.
-* **No `DIV`/`MOD`.** Division is not in the instruction set; only *exact*
-  division is expressible (repeated subtraction — see
-  `tests/test_reference_defects.py`). Non-exact division cannot terminate,
-  because `JZ`/`JNZ` only test equality with zero.
-* **No debugger, disassembler or profiler**, as the museum pitch mentions for
-  the toolchain half of the work; the C core is the execution half only.
-* **No MCU-specific integration**: no interrupt hooks, no DMA, no EEPROM/Flash
-  programming helper, no energy measurement on real silicon. The core is pure
-  computation — it builds for any C99 target and nothing else is claimed.
-* **Not a replacement for the Python VM**: `vm/ternary_vm.py` stays the
-  reference implementation. The C header is an addition that executes the same
-  images, and `tests/test_c_parity.py` proves they agree.
-
-### Known defect of the reference codec (reproduced on purpose)
-
-`vm/ternary_vm.py` uses a bias of `3**8 = 6561` when packing a tryte, but a
-9-trit tryte needs `(3**9-1)/2 = 9841`. As a result
-`int_to_tryte_code` is a bijection only on `[-6561, 9841]`; the other **3280
-values** (`-9841..-6562`) encode to codes that decode to values *outside* the
-tryte range:
+`vm/ternary_vm.py` packs a tryte with bias `3**8 = 6561`, but a 9-trit
+tryte needs `(3**9-1)/2 = 9841`. So `int_to_tryte_code` is a bijection only
+on `[-6561, 9841]`; the other **3280 values** (`-9841..-6562`) encode to
+codes that decode outside the tryte range:
 
 ```
 encode(-6562) = 19682 -> decode = 13121
@@ -163,14 +170,55 @@ encode(-9000) = 17244 -> decode = 10683
 encode(-9841) = 16403 -> decode =  9842
 ```
 
-Visible from the ISA: `LOAD R0 -7000` loads `12683`, not `-7000`. No program
-in `programs/` is affected (they all stay inside the exact sub-range).
+Visible from the ISA: `LOAD R0 -7000` loads `12683`, not `-7000`. No
+program in `programs/` is affected. The C header reproduces this
+bit-for-bit (a port that silently disagrees with its reference is worse
+than one that agrees); `tests/test_reference_defects.py` and the C property
+suite pin the behaviour, and an upstream one-constant fix (bias 9841) must
+land on both sides in the same commit.
 
-`include/ternary_vm.h` reproduces this behaviour bit-for-bit, because a port
-that silently disagrees with its reference is worse than one that agrees.
-`tests/test_reference_defects.py` pins the current behaviour; a one-constant
-fix upstream in `vm/ternary_vm.py` (bias 9841) must be applied to the C side in
-the same commit.
+## The research layer
+
+* **Carry/borrow tracer** — `tools/ttrace.c` (+ `tools/ttrace_add.h`, the
+  digit-wise arithmetic it visualises): per-trit tables of operand trits,
+  incoming/outgoing carry or borrow, result trit; ASCII or `--html`;
+  overflow shown, not hidden (exit code 3). Example output and the
+  derivation of the carry rules are in [docs/lab.md](docs/lab.md).
+* **Property tests** — `tests/property_test.c`: round-trip, digit-wise
+  carry/borrow correctness vs independent int64 references (exhaustive for
+  widths 1..6, randomized + boundary for width 9), VM `ADD/SUB/MUL/NEG`
+  saturation equality vs int64, packed-codec round-trip incl. the pinned
+  defect, comparison/zero-uniqueness/negation involution. 337 761 089
+  checks pass in ~5 s (gcc 14.2, -O2).
+* **Trit-vs-bit comparison** — `bench/bench_tri_vs_bin.c`: ternary
+  (value-domain / packed-domain / digit-wise) vs binary arithmetic on the
+  same host, plus the trit/bit count facts and the codec cost. Key recorded
+  finding: the VM's value-domain "ternary" add compiles to the same machine
+  code as a saturating 16-bit binary add (1.01x); the digit-wise software
+  emulation costs ~50-70x; the packed path pays ~57x for decode+encode.
+  Numbers, methodology and limits: [docs/lab.md](docs/lab.md).
+
+## Honesty section
+
+* **No energy claims.** This repository contains no energy measurements and
+  none are possible from wall-clock time on a host CPU.
+  Упаковка троичных трайтов в биты не гарантирует энергетической
+  эффективности; сравнение с бинарными системами по энергии — гипотеза,
+  требующая измерений на железе. (Packing ternary trytes into bits does not
+  guarantee energy efficiency; comparing ternary with binary systems by
+  energy is a hypothesis that requires measurements on real hardware.)
+* **No "ternary beats binary" claims.** The cost comparison exists to show
+  what software emulation of digit-wise ternary costs on binary silicon —
+  not to argue for the radix.
+* **ISA limits**: no `DIV`/`MOD` (non-exact division cannot terminate with
+  only `JZ`/`JNZ`), no ordered comparison, no memory→register load
+  (memory is write-only), no debugger/disassembler/profiler, no MCU
+  integration (interrupts/DMA/Flash helpers).
+* **Codec defect** (above) is reproduced on purpose and pinned by tests on
+  both runtimes.
+* Benchmarks are host-only (x86-64, not MCU), load-dependent, and reported
+  as recorded runs with their conditions; re-run them with
+  `bench/run_all.py` before quoting.
 
 ## Tests
 
@@ -184,8 +232,8 @@ python -m unittest discover -s tests -t tests -v
 * `tests/test_asm.py` — both assembler passes, label resolution, frozen opcode
   numbers (also matched against the C header), rejected inputs.
 * `tests/test_reference_defects.py` — the measured behaviour of the reference
-  runtime that the audit did not mention: the codec defect above, the all-zero
-  memory initialisation, the absent division, unchecked register fields.
+  runtime: the codec defect, the all-zero memory initialisation, the absent
+  division, unchecked register fields.
 * `tests/test_c_parity.py` — differential testing: the same bytecode image is
   executed by the Python VM and by the C core, and output stream, register
   file, PC, step count and the whole 256-cell memory image are compared.
@@ -194,6 +242,9 @@ python -m unittest discover -s tests -t tests -v
 * `tests/test_c_build.py` — the header compiles standalone at `-O0..-O3/-Os`
   with `-Wall -Wextra -Werror -pedantic`, the demo exits 0, the generated
   bytecode header is current, and the header links in two translation units.
+* `tests/test_property_c.py` (+ `tests/property_test.c`,
+  `tests/run_property_tests.sh`) — the arithmetic property suite described
+  above.
 
 ## Benchmark: Python VM vs C core vs MPTC
 
@@ -203,9 +254,11 @@ python bench/run_all.py --mptc-dir ../MPTC               # add --repeat 5 for st
 ```
 
 What is measured: the *same bytecode images* from `programs/`, executed
-repeatedly, reported as nanoseconds per executed VM instruction; plus the tryte
-primitive operations (saturating add in the value domain, and `encode + add +
-decode` in the packed domain — the closest analogue of MPTC's packed add).
+repeatedly, reported as nanoseconds per executed VM instruction; plus the
+tryte primitive operations (saturating add in the value domain, and
+`encode + add + decode` in the packed domain — the closest analogue of
+MPTC's packed add); plus the ternary-vs-binary arithmetic cost of
+`bench_tri_vs_bin.c`.
 
 Recorded run — AMD Ryzen 7 7840HS (16 cores), Linux x86_64, gcc 16.1.1,
 `-std=c99 -O2 -Wall -Wextra`, CPython 3.14.7, `--repeat 5 --py-repeat 3`
@@ -248,23 +301,28 @@ Honest reading of these numbers:
 
 ## Provenance
 
-This work closes the gap recorded in the lost-tech-museum audit of the
-kostyk348 portfolio:
+This repository grew from the lost-tech-museum audit of the kostyk348
+portfolio and was then repositioned as a research lab by the follow-up
+audit (kostyk348 deep-math & experimental audit, 2026-11-08):
 
 * archive record: `ternary-vm` in digest **«Портфель kostyk348: что почти
   готово и что стоит дореализовать»** (slug `portfolio-review`, generated
   2026-10-14) — https://kostyk348.github.io/lost-tech-museum/digests/portfolio-review/
-* recorded state: *"2 исходника, 0 тестов, релизов нет; заявленный
+* recorded state there: *"2 исходника, 0 тестов, релизов нет; заявленный
   `ternary_vm.h` для MCU не реализован — это ключевая незакрытая часть. Нет
   сравнения с MPTC по скорости."*
-* pitch it grew from: *"Довести до пары MPTC: троичный байткод, который
-  исполняется на MCU, плюс тулчейн (ассемблер + отладчик). Тогда троичная
-  линия перестаёт быть исследованием и становится инструментом для
-  энергоэффективных вычислений."*
+* the follow-up audit's framing, which this repository now follows:
+  *"Не нужно доказывать, что троичная VM лучше бинарной. Сделай её
+  лабораторией: визуализация carry/borrow, assembler, trace,
+  арифметические свойства, сравнение количества trit/bit и стоимости
+  кодирования. Хороший результат — открытая reference VM для исследования
+  balanced ternary и MPTC, а не конкурент обычным VM."*
 
-Delivered against that pitch: the C core, the test suite, the MPTC comparison
-and CI. Still open: the debugger half of the toolchain, MCU integration, and
-an upstream fix for the codec bias.
+Delivered against that framing: the C core, the test suite, the MPTC
+comparison, CI, and now the research layer (carry/borrow tracer, property
+tests, trit-vs-bit comparison, bilingual docs). Still open: the debugger
+half of the toolchain, MCU integration, and an upstream fix for the codec
+bias.
 
 ## License
 

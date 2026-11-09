@@ -37,6 +37,27 @@ jobs:
           gcc -std=c99 -O2 -Wall -Wextra -Werror -Iinclude -Iexamples/c \
               bench/bench_vm.c -o bench_vm
           ./bench_vm
+      - name: property tests (arithmetic properties vs int64 references)
+        run: sh tests/run_property_tests.sh
+      - name: "carry/borrow tracer smoke (add, sub, mul, html, overflow)"
+        run: |
+          gcc -std=c99 -O2 -Wall -Wextra -Werror -pedantic -Iinclude -Itools \
+              tools/ttrace.c -o ttrace
+          ./ttrace add 5 7
+          ./ttrace sub -5 7
+          ./ttrace mul 6 8
+          ./ttrace --html add -5 7 > trace.html
+          set +e
+          ./ttrace add 9841 1 > overflow.txt
+          code=$?
+          set -e
+          test "$code" -eq 3
+          grep -q "OVERFLOW" overflow.txt
+      - name: ternary-vs-binary cost benchmark (wall clock only)
+        run: |
+          gcc -std=c99 -O2 -Wall -Wextra -Werror -pedantic -Iinclude -Itools \
+              bench/bench_tri_vs_bin.c -o bench_tri_vs_bin -lm
+          ./bench_tri_vs_bin
 
   mptc-cross-check:
     runs-on: ubuntu-latest

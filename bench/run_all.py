@@ -164,6 +164,16 @@ def main() -> int:
             print("\n--- python repeat %d/%d ---" % (i + 1, args.py_repeat))
             py_runs.append(parse(run(py_cmd)))
 
+        print("\n=== run: ternary-vs-binary arithmetic cost (bench/bench_tri_vs_bin.c) ===")
+        print("measures ternary (value/packed/digit-wise) vs binary arithmetic on")
+        print("this host; wall-clock time only -- no energy conclusions are possible")
+        tri_bin = pathlib.Path(tmp) / "bench_tri_vs_bin"
+        tb_cmd = [args.cc] + cflags + ["-I", ROOT / "tools",
+                                       ROOT / "bench" / "bench_tri_vs_bin.c",
+                                       "-o", tri_bin, "-lm"]
+        run(tb_cmd)
+        run([tri_bin])
+
     c = merge_min(c_runs)
     p = merge_min(py_runs)
 
