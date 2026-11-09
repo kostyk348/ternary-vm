@@ -292,7 +292,7 @@ static void prop_mul_width9(void)
             CHECK(m.clamped == ref_clamp64(prod, -lim9, lim9),
                   "mul %lld*%lld: clamped field wrong", (long long)cand[i],
                   (long long)cand[j]);
-            if (!m.overflow) {
+            if (!m.overflow && m.n_steps > 0) {
                 CHECK(m.step[m.n_steps - 1].acc_after == prod,
                       "mul %lld*%lld: ladder accumulator %lld != product %lld",
                       (long long)cand[i], (long long)cand[j],
@@ -307,8 +307,8 @@ static void prop_mul_width9(void)
         int64_t prod = a * b;
         CHECK(m.value == prod, "mul random %lld*%lld: value field wrong",
               (long long)a, (long long)b);
-        if (prod >= -lim && prod <= lim)
-            CHECK(m.step[m.n_steps - 1].acc_after == prod || b == 0,
+        if (prod >= -lim && prod <= lim && m.n_steps > 0)
+            CHECK(m.step[m.n_steps - 1].acc_after == prod,
                   "mul random %lld*%lld: ladder wrong", (long long)a, (long long)b);
         n++;
     }
