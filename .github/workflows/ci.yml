@@ -39,7 +39,7 @@ jobs:
           ./bench_vm
       - name: property tests (arithmetic properties vs int64 references)
         run: sh tests/run_property_tests.sh
-      - name: carry/borrow tracer (smoke: add, sub, mul, html, overflow)
+      - name: "carry/borrow tracer smoke (add, sub, mul, html, overflow)"
         run: |
           gcc -std=c99 -O2 -Wall -Wextra -Werror -pedantic -Iinclude -Itools \
               tools/ttrace.c -o ttrace
