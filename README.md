@@ -1,11 +1,20 @@
+<div align="center">
+
+<img src="docs/banner.svg" alt="ternary-vm banner" width="1000">
+
 # ternary-vm
+
+### English | [Русский](README.ru.md)
 
 [![CI](https://github.com/kostyk348/ternary-vm/actions/workflows/ci.yml/badge.svg)](https://github.com/kostyk348/ternary-vm/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/kostyk348/ternary-vm?sort=semver&color=blue)](https://github.com/kostyk348/ternary-vm/releases)
 [![License](https://img.shields.io/badge/license-Apache-2.0-green)](https://github.com/kostyk348/ternary-vm/blob/main/LICENSE)
 [![Last commit](https://img.shields.io/github/last-commit/kostyk348/ternary-vm?branch=main)](https://github.com/kostyk348/ternary-vm/commits/main)
 
-**English | [Русский](README.ru.md)**
+</div>
+
+---
+
 
 **A balanced-ternary reference VM and research lab.**
 
